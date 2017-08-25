@@ -87,12 +87,12 @@ func TestIntegration_AsyncSubscription(t *testing.T) {
 		Event:      subscriptions.TopicID(eventName),
 	})
 
-	wait10Seconds(router.WaitForSubscriber(subscriptions.TopicID(eventName)),
+	wait(router.WaitForSubscriber(subscriptions.TopicID(eventName)),
 		"timed out waiting for subscriber to be configured!")
 
 	emit(testRouterServer.URL, eventName, []byte(expected))
 
-	wait10Seconds(smileyReceived,
+	wait(smileyReceived,
 		"timed out waiting to receive pub/sub event in subscriber!")
 
 	router.Drain()
@@ -133,25 +133,20 @@ func TestIntegration_HTTPResponse(t *testing.T) {
 		Path:       "/httpresponse",
 	})
 
-	select {
-	case <-router.WaitForEndpoint(subscriptions.NewEndpointID("GET", "/httpresponse")):
-	case <-time.After(10 * time.Second):
-		panic("timed out waiting for endpoint to be configured!")
-	}
+	wait(router.WaitForEndpoint(subscriptions.NewEndpointID("GET", "/httpresponse")), "timed out waiting for endpoint to be configured!")
 
 	statusCode, headers, body := get(testRouterServer.URL + "/httpresponse")
 	assert.Equal(t, statusCode, 201)
 	assert.Equal(t, headers.Get("content-type"), "text/html")
 	assert.Equal(t, body, "<head></head>")
-
 	router.Drain()
 	shutdownGuard.ShutdownAndWait()
 }
 
-func wait10Seconds(ch <-chan struct{}, errMsg string) {
+func wait(ch <-chan struct{}, errMsg string) {
 	select {
 	case <-ch:
-	case <-time.After(10 * time.Second):
+	case <-time.After(3 * time.Second):
 		panic(errMsg)
 	}
 }
